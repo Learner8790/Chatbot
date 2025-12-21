@@ -1,0 +1,7 @@
+{
+  "retrieval_accuracy": 100.0,
+  "answer_accuracy": 95.83333333333334,
+  "cost": 0.008917749999999999,
+  "total_queries": 24,
+  "failures": 1
+}

@@ -1,0 +1,9 @@
+{
+  "documents_loaded": 99,
+  "qa_pairs": 100,
+  "retrieval_accuracy": 74.0,
+  "answer_accuracy": 82.0,
+  "partial_accuracy": 2.0,
+  "combined_accuracy": 83.0,
+  "cost": 0.1105995
+}

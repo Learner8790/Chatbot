@@ -1,0 +1,57 @@
+# Environment
+.env
+*.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.eggs/
+*.egg
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Cache
+.cache/
+*.pkl
+embeddings_cache.pkl
+
+# Large files
+*.zip
+CUAD_v1.zip
+
+# Claude config (contains API keys)
+.claude/
+
+# Temp files
+NUL
+*.tmp
+
+# Old markdown reports (keep README only)
+ACCURACY_*.md
+BEFORE_AFTER_*.md
+COMPLETE_*.md
+COMPREHENSIVE_*.md
+ENHANCED_*.md
+FINAL_*.md
+HONEST_*.md
+OPTIMIZATION_*.md
+PRODUCTION_*.md
+PROGRESS_*.md
+QUICK_*.md
+REALISTIC_*.md
+SEMANTIC_*.md
+README_COMPLETE.md
+
+# Docx files
+*.docx
+*.tex
