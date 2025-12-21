@@ -1,6 +1,6 @@
 """
 Banking Chatbot - Simple Chat Interface
-A clean, minimalistic chat dashboard.
+A clean, minimalistic chat dashboard with conversation memory.
 """
 import streamlit as st
 import anthropic
@@ -21,24 +21,13 @@ st.set_page_config(
 # Custom CSS for minimalistic white theme
 st.markdown("""
 <style>
-    /* Main background */
     .stApp {
         background-color: #ffffff;
     }
-
-    /* Hide Streamlit branding */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
 
-    /* Chat container */
-    .chat-container {
-        max-width: 700px;
-        margin: 0 auto;
-        padding: 20px;
-    }
-
-    /* Header styling */
     .main-header {
         font-size: 24px;
         font-weight: 600;
@@ -48,15 +37,12 @@ st.markdown("""
         border-bottom: 1px solid #e5e5e5;
         margin-bottom: 30px;
     }
-
     .sub-header {
         font-size: 14px;
         color: #666666;
         text-align: center;
         margin-bottom: 30px;
     }
-
-    /* Message styling */
     .user-message {
         background-color: #f5f5f5;
         padding: 15px 20px;
@@ -64,7 +50,6 @@ st.markdown("""
         margin: 10px 0;
         color: #1a1a1a;
     }
-
     .assistant-message {
         background-color: #ffffff;
         padding: 15px 20px;
@@ -73,7 +58,6 @@ st.markdown("""
         border: 1px solid #e5e5e5;
         color: #1a1a1a;
     }
-
     .message-label {
         font-size: 11px;
         color: #999999;
@@ -81,21 +65,16 @@ st.markdown("""
         letter-spacing: 0.5px;
         margin-bottom: 5px;
     }
-
-    /* Input styling */
     .stTextInput > div > div > input {
         border: 1px solid #e5e5e5;
         border-radius: 8px;
         padding: 12px 15px;
         font-size: 15px;
     }
-
     .stTextInput > div > div > input:focus {
         border-color: #1a1a1a;
         box-shadow: none;
     }
-
-    /* Button styling */
     .stButton > button {
         background-color: #1a1a1a;
         color: #ffffff;
@@ -105,19 +84,14 @@ st.markdown("""
         font-size: 14px;
         font-weight: 500;
     }
-
     .stButton > button:hover {
         background-color: #333333;
     }
-
-    /* Metadata styling */
     .metadata {
         font-size: 11px;
         color: #999999;
         margin-top: 8px;
     }
-
-    /* Divider */
     .divider {
         border-top: 1px solid #e5e5e5;
         margin: 20px 0;
@@ -125,116 +99,93 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Banking intents and routing rules
-INTENTS = {
-    "activate_card": {
-        "matches": "activate, start using, new card received, chalu karo",
-        "response": "To activate your card:\n\n1. Open Mobile Banking app\n2. Go to Cards > Manage Cards\n3. Select your new card\n4. Enter CVV and verify with OTP\n\nYour card will be active within 5 minutes."
-    },
-    "block_card": {
-        "matches": "block, lost, stolen, freeze, band karo",
-        "response": "I'm blocking your card immediately for security.\n\nNext steps:\n1. If stolen, file a police report\n2. Order a replacement card (3-5 days)\n3. Review recent transactions\n\nWould you like to order a replacement?"
-    },
-    "card_not_working": {
-        "matches": "not working, declined, rejected, kaam nahi",
-        "response": "Let me help troubleshoot:\n\n1. Is the card activated?\n2. Is the PIN correct? (3 wrong attempts = block)\n3. Sufficient balance?\n4. International usage enabled?\n\nWhich might be the issue?"
-    },
-    "check_balance": {
-        "matches": "balance, kitna paisa, how much money",
-        "response": "To check your balance:\n\n1. Mobile Banking: Home screen shows balance\n2. SMS: Send BAL to 56161\n3. Missed call: 1800-XXX-XXXX\n4. ATM: Balance inquiry option\n\nWould you like a mini statement?"
-    },
-    "transfer_money": {
-        "matches": "transfer, send money, bhejana, payment",
-        "response": "To transfer money:\n\n1. Mobile Banking > Transfer > Send Money\n2. Select beneficiary or add new\n3. Enter amount\n4. Confirm with OTP\n\nLimits: IMPS up to 5L (instant), NEFT no limit."
-    },
-    "pending_transfer": {
-        "matches": "pending, stuck, not received, nahi gaya",
-        "response": "I'll check your pending transfer.\n\nUsually resolves within:\n- IMPS: Instant to 30 mins\n- NEFT: 2-4 hours\n- RTGS: 30 mins\n\nIf over 24 hours, please share transaction ID for investigation."
-    },
-    "report_fraud": {
-        "matches": "fraud, scam, unauthorized, chori, stolen money",
-        "response": "I'm sorry to hear this. Taking immediate action:\n\n1. Your card is being blocked\n2. Dispute registered\n3. Fraud team notified\n\nImportant:\n- Don't share OTP with anyone\n- File complaint at cybercrime.gov.in\n\nOur team will call within 2 hours."
-    },
-    "speak_to_human": {
-        "matches": "human, agent, person, executive, manager",
-        "response": "Connecting you to a human agent.\n\nEstimated wait: 2-3 minutes\n\nAlternatives:\n- Call: 1800-XXX-XXXX (24x7)\n- Email: support@bank.com\n- Branch visit"
-    }
-}
+
+SYSTEM_PROMPT = """You are a helpful banking assistant for an Indian bank. You help customers with their banking queries.
+
+Your capabilities:
+- Card issues: activation, blocking, not working, delivery status
+- Account: balance check, mini statement, update details
+- Transfers: send money, pending transfers, add beneficiary
+- Payments: credit card bill, UPI issues
+- Security: report fraud, change PIN, forgot PIN
+- Support: complaints, feedback, branch locator
+
+Guidelines:
+1. Be conversational and helpful
+2. Remember the full conversation context - do not repeat questions already asked
+3. If user says they already checked something, acknowledge it and move to next steps
+4. When troubleshooting fails, offer to escalate to human agent or suggest visiting branch
+5. Keep responses concise - 2-3 short paragraphs max
+6. No emojis
+7. If user is frustrated, acknowledge their frustration and be empathetic
+8. After 2-3 troubleshooting attempts, offer concrete next steps like:
+   - Raising a complaint ticket
+   - Connecting to human agent
+   - Visiting nearest branch
+   - Calling customer care
+
+For card not working issues after basic checks fail:
+- Offer to raise a service request
+- Suggest card replacement if needed
+- Provide customer care number: 1800-XXX-XXXX"""
 
 
-def get_routing_rules():
-    """Generate routing rules for LLM."""
-    rules = []
-    for intent_id, data in INTENTS.items():
-        rules.append(f"- {intent_id}: {data['matches']}")
-    return "\n".join(rules)
+def get_response(messages: list, client: anthropic.Anthropic) -> str:
+    """Get response from Claude with full conversation history."""
 
-
-def route_and_respond(query: str, client: anthropic.Anthropic) -> dict:
-    """Route query and generate response."""
-
-    # Step 1: Route to intent
-    routing_prompt = f"""You are a banking chatbot router. Route this query to the correct intent.
-
-INTENTS:
-{get_routing_rules()}
-
-QUERY: "{query}"
-
-Reply with ONLY the intent name (like "activate_card" or "check_balance").
-If no good match, reply "general"."""
-
-    routing_response = client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=50,
-        temperature=0,
-        messages=[{"role": "user", "content": routing_prompt}]
-    )
-
-    intent = routing_response.content[0].text.strip().lower().replace('"', '')
-
-    # Step 2: Get response template or generate custom
-    if intent in INTENTS:
-        base_response = INTENTS[intent]["response"]
-    else:
-        base_response = None
-        intent = "general"
-
-    # Step 3: Generate personalized response
-    if base_response:
-        response_prompt = f"""You are a helpful banking assistant. Respond to this query naturally.
-
-QUERY: "{query}"
-INTENT: {intent}
-
-BASE RESPONSE:
-{base_response}
-
-Make it conversational and helpful. Keep it concise. No emojis."""
-    else:
-        response_prompt = f"""You are a helpful banking assistant. Respond to this query.
-
-QUERY: "{query}"
-
-Provide helpful banking guidance. Keep it concise and professional. No emojis."""
+    # Build conversation for Claude
+    claude_messages = []
+    for msg in messages:
+        claude_messages.append({
+            "role": msg["role"],
+            "content": msg["content"]
+        })
 
     response = client.messages.create(
         model="claude-sonnet-4-20250514",
-        max_tokens=300,
+        max_tokens=400,
         temperature=0.3,
-        messages=[{"role": "user", "content": response_prompt}]
+        system=SYSTEM_PROMPT,
+        messages=claude_messages
     )
 
-    return {
-        "intent": intent,
-        "response": response.content[0].text.strip(),
-        "tokens": routing_response.usage.input_tokens + routing_response.usage.output_tokens +
-                  response.usage.input_tokens + response.usage.output_tokens
-    }
+    return response.content[0].text.strip()
+
+
+def detect_intent(query: str, conversation: list) -> str:
+    """Simple intent detection based on keywords."""
+    query_lower = query.lower()
+
+    # Check keywords
+    if any(w in query_lower for w in ["activate", "activation", "chalu", "start using"]):
+        return "activate_card"
+    if any(w in query_lower for w in ["block", "lost", "stolen", "freeze", "band karo"]):
+        return "block_card"
+    if any(w in query_lower for w in ["not working", "declined", "reject", "useless", "kaam nahi"]):
+        return "card_not_working"
+    if any(w in query_lower for w in ["balance", "kitna paisa", "how much"]):
+        return "check_balance"
+    if any(w in query_lower for w in ["transfer", "send money", "bhejana"]):
+        return "transfer_money"
+    if any(w in query_lower for w in ["pending", "stuck", "nahi gaya"]):
+        return "pending_transfer"
+    if any(w in query_lower for w in ["fraud", "scam", "chori", "unauthorized"]):
+        return "report_fraud"
+    if any(w in query_lower for w in ["human", "agent", "person", "manager"]):
+        return "speak_to_human"
+    if any(w in query_lower for w in ["complaint", "shikayat", "escalate"]):
+        return "complaint"
+
+    # Check conversation context for ongoing issues
+    if conversation:
+        last_intents = [m.get("intent", "") for m in conversation[-4:] if m["role"] == "assistant"]
+        if last_intents and last_intents[-1]:
+            return last_intents[-1]  # Continue with same intent
+
+    return "general"
 
 
 def main():
-    # Header
     st.markdown('<div class="main-header">Banking Assistant</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-header">How can I help you today?</div>', unsafe_allow_html=True)
 
@@ -256,8 +207,6 @@ def main():
             <p style="font-size: 13px;">Add ANTHROPIC_API_KEY to your .env file</p>
         </div>
         """, unsafe_allow_html=True)
-
-        # Allow manual entry
         api_key = st.text_input("Or enter API key:", type="password")
         if api_key:
             st.session_state.client = anthropic.Anthropic(api_key=api_key)
@@ -303,19 +252,22 @@ def main():
             "content": query
         })
 
-        # Get response
+        # Detect intent
+        intent = detect_intent(query, st.session_state.messages)
+
+        # Get response with full conversation history
         with st.spinner(""):
             try:
-                result = route_and_respond(query, st.session_state.client)
+                response = get_response(st.session_state.messages, st.session_state.client)
                 st.session_state.messages.append({
                     "role": "assistant",
-                    "content": result["response"],
-                    "intent": result["intent"]
+                    "content": response,
+                    "intent": intent
                 })
             except Exception as e:
                 st.session_state.messages.append({
                     "role": "assistant",
-                    "content": f"Sorry, I encountered an error. Please try again.",
+                    "content": f"Sorry, I encountered an error: {str(e)}",
                     "intent": "error"
                 })
 
@@ -351,12 +303,13 @@ def main():
             with cols[i % 2]:
                 if st.button(sample, key=f"sample_{i}", use_container_width=True):
                     st.session_state.messages.append({"role": "user", "content": sample})
+                    intent = detect_intent(sample, st.session_state.messages)
                     with st.spinner(""):
-                        result = route_and_respond(sample, st.session_state.client)
+                        response = get_response(st.session_state.messages, st.session_state.client)
                         st.session_state.messages.append({
                             "role": "assistant",
-                            "content": result["response"],
-                            "intent": result["intent"]
+                            "content": response,
+                            "intent": intent
                         })
                     st.rerun()
 
