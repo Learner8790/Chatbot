@@ -29,18 +29,19 @@ st.markdown("""
     footer {visibility: hidden !important;}
     header {visibility: hidden !important;}
     .stDeployButton {display: none !important;}
+    .stAppDeployButton {display: none !important;}
     [data-testid="stDecoration"] {display: none !important;}
     [data-testid="stStatusWidget"] {display: none !important;}
     [data-testid="manage-app-button"] {display: none !important;}
-    .viewerBadge_container__r5tak {display: none !important;}
-    .stAppDeployButton {display: none !important;}
-    .styles_viewerBadge__CvC9N {display: none !important;}
-    ._profileContainer_gzau3_53 {display: none !important;}
     [data-testid="stToolbar"] {display: none !important;}
-    a[href*="streamlit.io"] {display: none !important;}
-    .st-emotion-cache-czk5ss {display: none !important;}
-    .st-emotion-cache-h4xjwg {display: none !important;}
+    [data-testid="stBottom"] {display: none !important;}
+    div[class*="viewerBadge"] {display: none !important;}
+    div[class*="_profileContainer"] {display: none !important;}
+    div[class*="_container_"] > a[href*="streamlit.io"] {display: none !important;}
     iframe[title="streamlit_badge"] {display: none !important;}
+    div:has(> iframe[title="streamlit_badge"]) {display: none !important;}
+    div[class*="stAppViewBlockContainer"] ~ div[style*="position: fixed"][style*="bottom"] {display: none !important;}
+    div[style*="position: fixed"][style*="bottom: 0"][style*="right: 0"] {display: none !important;}
 
     .main-header {
         font-size: 24px;
