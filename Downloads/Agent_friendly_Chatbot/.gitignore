@@ -32,6 +32,9 @@ CUAD_v1.zip
 # Claude config (contains API keys)
 .claude/
 
+# Streamlit secrets (contains API keys)
+.streamlit/secrets.toml
+
 # Temp files
 NUL
 *.tmp

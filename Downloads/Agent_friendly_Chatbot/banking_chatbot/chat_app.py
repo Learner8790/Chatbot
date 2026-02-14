@@ -3,7 +3,8 @@ Banking Chatbot - Simple Chat Interface
 A clean, minimalistic chat dashboard with conversation memory.
 """
 import streamlit as st
-import anthropic
+from google import genai
+from google.genai import types
 import os
 from dotenv import load_dotenv
 
@@ -130,26 +131,31 @@ For card not working issues after basic checks fail:
 - Provide customer care number: 1800-XXX-XXXX"""
 
 
-def get_response(messages: list, client: anthropic.Anthropic) -> str:
-    """Get response from Claude with full conversation history."""
+def get_response(messages: list, client: genai.Client) -> str:
+    """Get response from Gemini with full conversation history."""
 
-    # Build conversation for Claude
-    claude_messages = []
+    # Build conversation for Gemini (uses "model" role, not "assistant")
+    contents = []
     for msg in messages:
-        claude_messages.append({
-            "role": msg["role"],
-            "content": msg["content"]
-        })
+        role = "user" if msg["role"] == "user" else "model"
+        contents.append(
+            types.Content(
+                role=role,
+                parts=[types.Part.from_text(text=msg["content"])]
+            )
+        )
 
-    response = client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=400,
-        temperature=0.3,
-        system=SYSTEM_PROMPT,
-        messages=claude_messages
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=contents,
+        config=types.GenerateContentConfig(
+            system_instruction=SYSTEM_PROMPT,
+            max_output_tokens=400,
+            temperature=0.3,
+        ),
     )
 
-    return response.content[0].text.strip()
+    return response.text.strip()
 
 
 def detect_intent(query: str, conversation: list) -> str:
@@ -193,9 +199,9 @@ def main():
     if "messages" not in st.session_state:
         st.session_state.messages = []
     if "client" not in st.session_state:
-        api_key = os.getenv("ANTHROPIC_API_KEY")
+        api_key = os.getenv("GOOGLE_API_KEY") or st.secrets.get("GOOGLE_API_KEY", None)
         if api_key:
-            st.session_state.client = anthropic.Anthropic(api_key=api_key)
+            st.session_state.client = genai.Client(api_key=api_key)
         else:
             st.session_state.client = None
 
@@ -204,12 +210,12 @@ def main():
         st.markdown("""
         <div style="text-align: center; padding: 40px; color: #666;">
             <p>API key not configured.</p>
-            <p style="font-size: 13px;">Add ANTHROPIC_API_KEY to your .env file</p>
+            <p style="font-size: 13px;">Add GOOGLE_API_KEY to your .env file or Streamlit secrets</p>
         </div>
         """, unsafe_allow_html=True)
-        api_key = st.text_input("Or enter API key:", type="password")
+        api_key = st.text_input("Or enter Google Gemini API key:", type="password")
         if api_key:
-            st.session_state.client = anthropic.Anthropic(api_key=api_key)
+            st.session_state.client = genai.Client(api_key=api_key)
             st.rerun()
         return
 
