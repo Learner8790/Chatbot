@@ -25,12 +25,22 @@ st.markdown("""
     .stApp {
         background-color: #ffffff;
     }
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    .stDeployButton {display: none;}
-    [data-testid="stDecoration"] {display: none;}
-    [data-testid="stStatusWidget"] {display: none;}
+    #MainMenu {visibility: hidden !important;}
+    footer {visibility: hidden !important;}
+    header {visibility: hidden !important;}
+    .stDeployButton {display: none !important;}
+    [data-testid="stDecoration"] {display: none !important;}
+    [data-testid="stStatusWidget"] {display: none !important;}
+    [data-testid="manage-app-button"] {display: none !important;}
+    .viewerBadge_container__r5tak {display: none !important;}
+    .stAppDeployButton {display: none !important;}
+    .styles_viewerBadge__CvC9N {display: none !important;}
+    ._profileContainer_gzau3_53 {display: none !important;}
+    [data-testid="stToolbar"] {display: none !important;}
+    a[href*="streamlit.io"] {display: none !important;}
+    .st-emotion-cache-czk5ss {display: none !important;}
+    .st-emotion-cache-h4xjwg {display: none !important;}
+    iframe[title="streamlit_badge"] {display: none !important;}
 
     .main-header {
         font-size: 24px;
